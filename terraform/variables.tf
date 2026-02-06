@@ -4,10 +4,16 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "instance_type" {
-  description = "EC2 instance type"
+variable "master_instance_type" {
+  description = "EC2 instance type for master node"
   type        = string
-  default     = "t3.micro"
+  default     = "t3.small"  # 2 vCPU, 2GB RAM
+}
+
+variable "worker_instance_type" {
+  description = "EC2 instance type for worker node"
+  type        = string
+  default     = "t3.medium"  # 2 vCPU, 4GB RAM
 }
 
 variable "public_key_path" {

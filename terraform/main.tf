@@ -243,7 +243,7 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_instance" "k8s_master" {
   ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.instance_type
+  instance_type          = var.master_instance_type
   key_name               = aws_key_pair.k8s.key_name
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.k8s_master.id]
@@ -259,12 +259,14 @@ resource "aws_instance" "k8s_master" {
   tags = {
     Name = "k8s-master"
     Role = "master"
+    CPU  = "2"
+    RAM  = "2GB"
   }
 }
 
 resource "aws_instance" "k8s_worker" {
   ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.instance_type
+  instance_type          = var.worker_instance_type
   key_name               = aws_key_pair.k8s.key_name
   subnet_id              = aws_subnet.private.id
   vpc_security_group_ids = [aws_security_group.k8s_worker.id]
@@ -280,5 +282,7 @@ resource "aws_instance" "k8s_worker" {
   tags = {
     Name = "k8s-worker"
     Role = "worker"
+    CPU  = "2"
+    RAM  = "4GB"
   }
 }
