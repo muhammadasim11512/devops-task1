@@ -254,7 +254,7 @@ resource "aws_instance" "k8s_master" {
     volume_type = "gp3"
   }
 
-  user_data = file("${path.module}/scripts/master-init.sh")
+  user_data = file("${path.module}/scripts/master-complete-setup.sh")
 
   tags = {
     Name = "k8s-master"
@@ -277,7 +277,7 @@ resource "aws_instance" "k8s_worker" {
     volume_type = "gp3"
   }
 
-  user_data = file("${path.module}/scripts/worker-init.sh")
+  user_data = file("${path.module}/scripts/worker-complete-setup.sh")
 
   tags = {
     Name = "k8s-worker"
