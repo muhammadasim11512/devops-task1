@@ -22,9 +22,17 @@ jobs:
         cd backend
         pip install -r requirements.txt
     
+    - name: Start Redis
+      run: |
+        docker run -d -p 6379:6379 redis:7-alpine
+        sleep 5
+    
     - name: Run Pytest
       run: |
         pytest tests/ -v --tb=short
+      env:
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
     
     - name: Trivy Filesystem Scan
       uses: aquasecurity/trivy-action@master

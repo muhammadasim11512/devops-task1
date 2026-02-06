@@ -22,16 +22,22 @@ jobs:
         username: ${{ env.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
     
-    - name: Build and Push Backend
+    - name: Build Backend
       run: |
         cd backend
         docker build -t ${{ env.DOCKER_USERNAME }}/devops-backend:latest .
+    
+    - name: Push Backend
+      run: |
         docker push ${{ env.DOCKER_USERNAME }}/devops-backend:latest
     
-    - name: Build and Push Frontend
+    - name: Build Frontend
       run: |
         cd frontend
         docker build -t ${{ env.DOCKER_USERNAME }}/devops-frontend:latest .
+    
+    - name: Push Frontend
+      run: |
         docker push ${{ env.DOCKER_USERNAME }}/devops-frontend:latest
     
     - name: Trivy Backend Image Scan
