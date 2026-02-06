@@ -44,8 +44,8 @@ echo "   Worker Private IP: $WORKER_PRIVATE_IP"
 echo ""
 
 # Wait for instances to be ready
-echo "⏳ Waiting for EC2 instances to initialize (3 minutes)..."
-sleep 180
+echo "⏳ Waiting for EC2 instances to initialize (5 minutes)..."
+sleep 300
 
 # Setup Master Node
 echo ""
@@ -55,10 +55,14 @@ echo "   Connecting to $MASTER_IP..."
 ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@$MASTER_IP << 'MASTER_SETUP'
 set -e
 
-echo "Waiting for user-data script to complete..."
-while [ ! -f /var/lib/cloud/instance/boot-finished ]; do
-    sleep 5
+echo "Checking if initialization is complete..."
+while [ ! -f /var/log/k8s-init.log ]; do
+    echo "Waiting for user-data script..."
+    sleep 10
 done
+
+echo "Verifying kubectl is installed..."
+kubectl version --client
 
 echo "Initializing Kubernetes cluster..."
 sudo kubeadm init \
@@ -112,10 +116,14 @@ echo "Connecting to worker node..."
 ssh -o StrictHostKeyChecking=no ubuntu@$WORKER_PRIVATE_IP << 'WORKER_INNER'
 set -e
 
-echo "Waiting for user-data script to complete..."
-while [ ! -f /var/lib/cloud/instance/boot-finished ]; do
-    sleep 5
+echo "Checking if initialization is complete..."
+while [ ! -f /var/log/k8s-init.log ]; do
+    echo "Waiting for user-data script..."
+    sleep 10
 done
+
+echo "Verifying kubectl is installed..."
+kubectl version --client
 
 echo "Joining cluster..."
 sudo $JOIN_CMD
