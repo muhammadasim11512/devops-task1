@@ -30,6 +30,7 @@ jobs:
         pytest tests/ -v --tb=short
     
     - name: SonarQube Scan
+      if: ${{ secrets.SONAR_TOKEN != '' }}
       uses: sonarsource/sonarqube-scan-action@master
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -102,7 +103,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.KUBECONFIG != ''
     steps:
     - uses: actions/checkout@v4
     
