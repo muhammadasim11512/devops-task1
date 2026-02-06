@@ -25,9 +25,18 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
 try:
-    redis_client = redis.Redis(host=os.getenv("REDIS_HOST", "redis"), port=int(os.getenv("REDIS_PORT", 6379)), db=0, decode_responses=True)
+    redis_client = redis.Redis(
+        host=os.getenv("REDIS_HOST", "redis"),
+        port=int(os.getenv("REDIS_PORT", 6379)),
+        db=0,
+        decode_responses=True,
+        socket_connect_timeout=5,
+        socket_timeout=5,
+        retry_on_timeout=True,
+        health_check_interval=30
+    )
     redis_client.ping()
-    logger.info("Redis connected successfully")
+    logger.info(f"Redis connected successfully at {os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', 6379)}")
 except Exception as e:
     logger.error(f"Redis connection failed: {e}")
     redis_client = None
@@ -74,7 +83,10 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
 
 @app.get("/health")
 async def health_check():
-    redis_status = "connected" if redis_client and redis_client.ping() else "disconnected"
+    try:
+        redis_status = "connected" if redis_client and redis_client.ping() else "disconnected"
+    except:
+        redis_status = "disconnected"
     return {"status": "healthy", "redis": redis_status, "timestamp": datetime.utcnow().isoformat()}
 
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
