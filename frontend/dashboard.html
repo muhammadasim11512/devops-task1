@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Task - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-container">
+            <h1>Dashboard</h1>
+            <div id="profile">
+                <h2>Profile</h2>
+                <p><strong>Username:</strong> <span id="profileUsername"></span></p>
+                <p><strong>Email:</strong> <span id="profileEmail"></span></p>
+                <p><strong>Full Name:</strong> <span id="profileFullName"></span></p>
+                <p><strong>Bio:</strong> <span id="profileBio"></span></p>
+            </div>
+            <form id="updateForm">
+                <h2>Update Profile</h2>
+                <input type="email" id="email" placeholder="Email" required>
+                <input type="text" id="fullName" placeholder="Full Name">
+                <textarea id="bio" placeholder="Bio"></textarea>
+                <button type="submit">Update</button>
+            </form>
+            <button id="logoutBtn">Logout</button>
+            <div id="message"></div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

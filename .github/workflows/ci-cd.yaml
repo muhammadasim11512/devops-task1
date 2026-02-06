@@ -1,0 +1,133 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOCKER_USERNAME: asimkhankhitran
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+    
+    - name: Run Pytest
+      run: |
+        pytest tests/ -v --tb=short
+    
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@master
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      continue-on-error: true
+    
+    - name: Trivy Filesystem Scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-fs-results.sarif'
+      continue-on-error: true
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ env.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
+    
+    - name: Build Backend Image
+      run: |
+        cd backend
+        docker build -t ${{ env.DOCKER_USERNAME }}/devops-backend:${{ github.sha }} \
+                     -t ${{ env.DOCKER_USERNAME }}/devops-backend:latest .
+    
+    - name: Build Frontend Image
+      run: |
+        cd frontend
+        docker build -t ${{ env.DOCKER_USERNAME }}/devops-frontend:${{ github.sha }} \
+                     -t ${{ env.DOCKER_USERNAME }}/devops-frontend:latest .
+    
+    - name: Trivy Backend Image Scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.DOCKER_USERNAME }}/devops-backend:latest
+        format: 'sarif'
+        output: 'trivy-backend-results.sarif'
+      continue-on-error: true
+    
+    - name: Trivy Frontend Image Scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.DOCKER_USERNAME }}/devops-frontend:latest
+        format: 'sarif'
+        output: 'trivy-frontend-results.sarif'
+      continue-on-error: true
+    
+    - name: Push Backend Image
+      run: |
+        docker push ${{ env.DOCKER_USERNAME }}/devops-backend:${{ github.sha }}
+        docker push ${{ env.DOCKER_USERNAME }}/devops-backend:latest
+    
+    - name: Push Frontend Image
+      run: |
+        docker push ${{ env.DOCKER_USERNAME }}/devops-frontend:${{ github.sha }}
+        docker push ${{ env.DOCKER_USERNAME }}/devops-frontend:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure kubectl
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+    
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f k8s/base/namespace.yaml
+        kubectl apply -f k8s/base/configmap.yaml
+        kubectl apply -f k8s/base/secret.yaml
+        kubectl apply -f k8s/base/serviceaccount.yaml
+        kubectl apply -f k8s/base/rbac.yaml
+        kubectl apply -f k8s/base/redis.yaml
+        kubectl apply -f k8s/base/backend.yaml
+        kubectl apply -f k8s/base/frontend.yaml
+        kubectl apply -f k8s/base/ingress.yaml
+        kubectl apply -f k8s/base/hpa.yaml
+        kubectl apply -f k8s/base/pdb.yaml
+        kubectl apply -f k8s/base/networkpolicy.yaml
+    
+    - name: Verify Deployment
+      run: |
+        kubectl rollout status deployment/backend -n devops-app --timeout=300s
+        kubectl rollout status deployment/frontend -n devops-app --timeout=300s
+        kubectl get pods -n devops-app
